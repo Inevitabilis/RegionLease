@@ -9,7 +9,7 @@ import { Route } from "./webpageRouting";
 //add it to AllDBClasses.ts
 
 async function main() {
-  const dataSource = AppDataSource();
+  const dataSource = await AppDataSource();
 
   const regionRepo = dataSource.getRepository(Region);
   const regions = await regionRepo.find();
@@ -27,7 +27,7 @@ void main();
 
 function shutdown(signal: NodeJS.Signals) {
   console.log(`got shutdown signal (${signal}), shutting down...`);
-  AppDataSource().destroy();
+  AppDataSource().then((x) => x.destroy());
   process.exit(0);
 }
 process.on("SIGTERM", shutdown);

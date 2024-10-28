@@ -21,4 +21,7 @@ export class User {
   @ManyToMany(() => Mod, (mod) => mod.authors)
   @JoinTable()
   mods: Mod[];
+
+  @Column("text")
+  passwordSaltedHash: string;
 }

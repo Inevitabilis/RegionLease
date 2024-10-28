@@ -1,15 +1,14 @@
 import { DataSource } from "typeorm";
 import { dbClassesMap } from "./AllDBClasses";
 import config from "../config.json";
-import fs from "fs";
 
-export function AppDataSource(): DataSource {
-  return (dataSource ??= initDataSource());
+export async function AppDataSource(): Promise<DataSource> {
+  return (dataSource ??= await initDataSource());
 }
 let dataSource: DataSource | undefined = undefined;
 
-function initDataSource(): DataSource {
-  return new DataSource({
+async function initDataSource(): Promise<DataSource> {
+  const e = new DataSource({
     type: "postgres",
     host: config.host,
     port: config.port,
@@ -18,8 +17,11 @@ function initDataSource(): DataSource {
     database: "regionlease",
     synchronize: true,
     logging: false,
-    entities: Object.values(dbClassesMap),
+    entities:
+      // [`./entites/*.{js, ts}`],
+      Object.values(dbClassesMap),
     subscribers: [],
     migrations: [],
   });
+  return await e.initialize();
 }
