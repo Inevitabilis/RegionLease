@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import express from "express";
+import express, { json } from "express";
 import { AppDataSource } from "./datasource";
 import { Region } from "./entities/region";
 import { Route } from "./webpageRouting";
@@ -13,9 +13,11 @@ async function main() {
 
   const regionRepo = dataSource.getRepository(Region);
   const regions = await regionRepo.find();
+
   console.log(JSON.stringify(regions));
 
   const app = express();
+  app.use(json());
   Route(app, dataSource);
 
   const port = 3000;
@@ -24,6 +26,7 @@ async function main() {
   });
 }
 void main();
+
 
 function shutdown(signal: NodeJS.Signals) {
   console.log(`got shutdown signal (${signal}), shutting down...`);
