@@ -18,7 +18,7 @@ export class User {
   @Column("text")
   contacts: string;
 
-  @ManyToMany(() => Mod, (mod) => mod.authors)
+  @ManyToMany(() => Mod, (mod) => mod.allowedUsers)
   @JoinTable()
   mods: Mod[];
 

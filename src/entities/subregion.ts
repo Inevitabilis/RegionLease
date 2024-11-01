@@ -1,8 +1,10 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Region } from "./region";
+import { IHaveVisibilitySettings } from "./IHaveVisibilitySettings";
+import { User } from "./user";
 
 @Entity()
-export class Subregion {
+export class Subregion implements IHaveVisibilitySettings {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -11,4 +13,13 @@ export class Subregion {
 
   @ManyToOne(() => Region, (region) => region.subregions)
   owningRegion?: Region;
+
+  isVisible(): boolean {
+    return Boolean(this.owningRegion?.isVisible());
+  }
+  allowedUsers(): User[] {
+    return this.owningRegion == undefined
+      ? []
+      : this.owningRegion.allowedUsers();
+  }
 }

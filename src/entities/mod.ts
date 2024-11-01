@@ -9,9 +9,10 @@ import {
 import { User } from "./user";
 import { Palette } from "./palette";
 import { Region } from "./region";
+import { IHaveVisibilitySettings } from "./IHaveVisibilitySettings";
 
 @Entity()
-export class Mod {
+export class Mod implements IHaveVisibilitySettings {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -22,7 +23,7 @@ export class Mod {
   description: string;
 
   @Column("bool")
-  isVisible: boolean;
+  visibility: boolean;
 
   @ManyToMany(() => User, (user) => user.mods)
   authors: User[];
@@ -33,4 +34,9 @@ export class Mod {
 
   @OneToMany(() => Region, (region) => region.owningMod)
   regions: Region[];
+
+  allowedUsers = () => this.authors;
+  isVisible() {
+    return this.visibility;
+  }
 }

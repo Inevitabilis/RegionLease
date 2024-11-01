@@ -7,9 +7,11 @@ import {
 } from "typeorm";
 import { Mod } from "./mod";
 import { Subregion } from "./subregion";
+import { IHaveVisibilitySettings } from "./IHaveVisibilitySettings";
+import { User } from "./user";
 
 @Entity()
-export class Region {
+export class Region implements IHaveVisibilitySettings {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -17,7 +19,7 @@ export class Region {
   acronym: string;
 
   @Column("boolean")
-  isVisible: boolean;
+  visibility: boolean;
 
   @ManyToOne(() => Mod, (mod) => mod.regions)
   owningMod?: Mod;
@@ -27,4 +29,11 @@ export class Region {
 
   @OneToMany(() => Region, (region) => region.connectedRegions)
   connectedRegions: Region[];
+
+  isVisible(): boolean {
+    return Boolean(this.owningMod?.isVisible());
+  }
+  allowedUsers(): User[] {
+    return this.owningMod == undefined ? [] : this.owningMod?.allowedUsers();
+  }
 }
