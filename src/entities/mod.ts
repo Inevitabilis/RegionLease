@@ -7,7 +7,6 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { User } from "./user";
-import { Palette } from "./palette";
 import { Region } from "./region";
 import { IHaveVisibilitySettings } from "./IHaveVisibilitySettings";
 
@@ -28,15 +27,17 @@ export class Mod implements IHaveVisibilitySettings {
   @ManyToMany(() => User, (user) => user.mods)
   authors: User[];
 
-  @ManyToMany(() => Palette, (palette) => palette.mods)
-  @JoinTable()
-  palettes: Palette[];
-
   @OneToMany(() => Region, (region) => region.owningMod)
   regions: Region[];
 
   allowedUsers = () => this.authors;
   isVisible() {
     return this.visibility;
+  }
+  setAuthor(user: User): void {
+    void this.authors.push(user);
+  }
+  removeAuthor(author: User): void {
+    this.authors = this.authors.filter((x) => x != author);
   }
 }

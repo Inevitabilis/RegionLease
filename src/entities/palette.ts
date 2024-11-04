@@ -11,19 +11,24 @@ export class Palette implements IHaveVisibilitySettings {
   @Column("int")
   number: number;
 
-  @ManyToMany(() => Mod, (mod) => mod.allowedUsers)
-  mods: Mod[];
+  @Column("boolean")
+  visibility: boolean;
+
+  @ManyToMany(() => User, (user) => user.mods)
+  authors: User[];
 
   isVisible(): boolean {
-    return this.mods.some((mod) => mod.isVisible());
+    return this.visibility;
   }
 
   allowedUsers(): User[] {
-    let result: Set<User> = new Set();
-    this.mods.forEach((mod) => {
-      const modAllowedUsers = new Set<User>(mod.allowedUsers());
-      result = new Set([...result, ...modAllowedUsers]);
-    });
-    return new Array(...result);
+    return this.authors;
+  }
+
+  setAuthor(user: User): void {
+    void this.authors.push(user);
+  }
+  removeAuthor(author: User): void {
+    this.authors = this.authors.filter((x) => x != author);
   }
 }

@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Mod } from "./mod";
+import { Palette } from "./palette";
 
 @Entity()
 export class User {
@@ -21,6 +22,10 @@ export class User {
   @ManyToMany(() => Mod, (mod) => mod.allowedUsers)
   @JoinTable()
   mods: Mod[];
+
+  @ManyToMany(() => Palette, (palette) => palette.allowedUsers)
+  @JoinTable()
+  palettes: Palette[];
 
   @Column("text")
   passwordSaltedHash: string;

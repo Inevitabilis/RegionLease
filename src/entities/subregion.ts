@@ -22,4 +22,11 @@ export class Subregion implements IHaveVisibilitySettings {
       ? []
       : this.owningRegion.allowedUsers();
   }
+
+  setAuthor(user: User): void {
+    void this.owningRegion?.setAuthor(user);
+  }
+  removeAuthor(author: User): void {
+    this.owningRegion?.removeAuthor(author);
+  }
 }

@@ -67,37 +67,7 @@ export function Route(app: Express, datasource: DataSource): void {
     }
   });
 
-  app.get("/api/database/:typerequest", authMiddleware, async (req, res) => {
-    if (req.params.typerequest in dbClassesMap) {
-      const classname = req.params.typerequest as keyof typeof dbClassesMap;
-      const requestedClass = dbClassesMap[classname];
-      const requestedRepo = datasource.getRepository(requestedClass);
-      let requestedObjects = await requestedRepo.find();
-
-      requestedObjects = requestedObjects.filter((x) => {
-        let result = true;
-        if (hasVisibilitySettings(x)) {
-          result = Boolean(x.isVisible());
-          if ("user" in req) {
-            const inspectedUser = req.user as JwtPayload;
-            const allowedUsers: User[] = x.allowedUsers();
-            if (
-              inspectedUser != undefined &&
-              allowedUsers != undefined &&
-              allowedUsers.some((x) => x.name == inspectedUser.username)
-            )
-              result = true;
-          }
-        }
-        return result;
-      });
-
-      res.status(200).send(JSON.stringify(requestedObjects));
-    } else
-      res
-        .status(404)
-        .send(`couldn't find type ${req.params.typerequest} in database`);
-  });
+  databaseRouting(app, datasource);
 }
 
 type loginResponse = {
@@ -142,4 +112,167 @@ async function login(
   const options = { expiresIn: "1h" };
   const token = sign(payload, key, options);
   return { status: "ok", data: token };
+}
+async function databaseRouting(app: Express, datasource: DataSource) {
+  app.get("/api/database/:typerequest", authMiddleware, async (req, res) => {
+    if (req.params.typerequest in dbClassesMap) {
+      const classname = req.params.typerequest as keyof typeof dbClassesMap;
+      const requestedClass = dbClassesMap[classname];
+      const requestedRepo = datasource.getRepository(requestedClass);
+      let requestedObjects = await requestedRepo.find();
+
+      requestedObjects = requestedObjects.filter((x) => {
+        let result = true;
+        if (hasVisibilitySettings(x)) {
+          result = Boolean(x.isVisible());
+          if ("user" in req) {
+            const inspectedUser = req.user as JwtPayload;
+            const allowedUsers: User[] = x.allowedUsers();
+            if (
+              inspectedUser != undefined &&
+              allowedUsers != undefined &&
+              allowedUsers.some((x) => x.name == inspectedUser.username)
+            )
+              result = true;
+          }
+        }
+        return result;
+      });
+
+      res.status(200).send(JSON.stringify(requestedObjects));
+    } else
+      res
+        .status(404)
+        .send(`couldn't find type ${req.params.typerequest} in database`);
+  });
+
+  app.post("/api/database/:typerequest", authMiddleware, async (req, res) => {
+    if ("user" in req && req.user) {
+      const requestUser = req.user as JwtPayload;
+      const databaseUser = await datasource
+        .getRepository(User)
+        .findOneBy({ name: requestUser.username });
+      if (databaseUser != undefined) {
+        const classname = req.params.typerequest as keyof typeof dbClassesMap;
+        if (classname != undefined) {
+          const requestedClass = dbClassesMap[classname];
+          const requestedRepo = datasource.getRepository(requestedClass);
+          let requestedObject = req.body as requestedClass;
+          if (
+            requestedObject != undefined &&
+            hasVisibilitySettings(requestedObject)
+          ) {
+            requestedObject.setAuthor(databaseUser);
+            requestedRepo.insert(requestedObject);
+            res.status(200).send("created successfully");
+          } else {
+            res
+              .status(500)
+              .send(
+                `casting body of sent json ( ${requestedObject} ) was invalid or wasn't of IHaveVisibilitySettings interface`
+              );
+          }
+        } else {
+          res
+            .status(404)
+            .send(`couldn't find the requested type ${req.params.typerequest}`);
+        }
+      } else {
+        res
+          .status(401)
+          .send(
+            "token is not connected to an account. contact administrator on this matter"
+          );
+      }
+    } else {
+      res.status(401).send("unauthorized access. log in and try again");
+    }
+  });
+
+  app.delete("/api/database/:typerequest", authMiddleware, async (req, res) => {
+    if ("user" in req && req.user) {
+      const requestUser = req.user as JwtPayload;
+      const databaseUser = await datasource
+        .getRepository(User)
+        .findOneBy({ name: requestUser.username });
+      if (databaseUser != undefined) {
+        const classname = req.params.typerequest as keyof typeof dbClassesMap;
+        if (classname != undefined) {
+          const requestedClass = dbClassesMap[classname];
+          const requestedRepo = datasource.getRepository(requestedClass);
+          const requestedObject = await requestedRepo.findOneBy(req.body);
+          if (requestedObject != undefined) {
+            requestedRepo.remove(requestedObject);
+            res.status(200).send("removed successfully");
+          }
+        } else {
+          res
+            .status(404)
+            .send(`couldn't find the requested type ${req.params.typerequest}`);
+        }
+      } else {
+        res
+          .status(401)
+          .send(
+            "token is not connected to an account. contact administrator on this matter"
+          );
+      }
+    } else {
+      res.status(401).send("unauthorized access. log in and try again");
+    }
+  });
+
+  app.put("/api/database/:typerequest", authMiddleware, async (req, res) => {
+    if ("user" in req && req.user) {
+      const requestUser = req.user as JwtPayload;
+      const databaseUser = await datasource
+        .getRepository(User)
+        .findOneBy({ name: requestUser.username });
+      if (databaseUser != undefined) {
+        const classname = req.params.typerequest as keyof typeof dbClassesMap;
+        if (classname != undefined) {
+          const requestedClass = dbClassesMap[classname];
+          const requestedRepo = datasource.getRepository(requestedClass);
+          if ("id" in req.body) {
+            let requestedObject = await requestedRepo.findOneBy({
+              id: req.body.id,
+            });
+            if (requestedObject != null) {
+              if (
+                "allowedUsers" in requestedObject &&
+                !requestedObject.allowedUsers().some((x) => x == requestUser)
+              ) {
+                res.status(403).send("not allowed");
+                return;
+              }
+              const insertionObject = req.body as requestedClass;
+              requestedRepo.save(insertionObject);
+            } else {
+              res
+                .status(404)
+                .send("couldn't find this object of type by id " + req.body.id);
+            }
+          } else {
+            res
+              .status(404)
+              .send(
+                "expecting ID in request to identify object to tinker with"
+              );
+          }
+        } else {
+          res
+            .status(404)
+            .send(`couldn't find the requested type ${req.params.typerequest}`);
+        }
+      } else {
+        res
+          .status(401)
+          .send(
+            "token is not connected to an account. contact administrator on this matter"
+          );
+      }
+    } else {
+      res.status(401).send("unauthorized access. log in and try again");
+    }
+  });
 }

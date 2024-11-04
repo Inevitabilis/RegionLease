@@ -36,4 +36,11 @@ export class Region implements IHaveVisibilitySettings {
   allowedUsers(): User[] {
     return this.owningMod == undefined ? [] : this.owningMod?.allowedUsers();
   }
+
+  setAuthor(user: User): void {
+    void this.owningMod?.setAuthor(user);
+  }
+  removeAuthor(author: User): void {
+    this.owningMod?.removeAuthor(author);
+  }
 }
