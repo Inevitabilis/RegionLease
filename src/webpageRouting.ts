@@ -157,7 +157,7 @@ async function databaseRouting(app: Express, datasource: DataSource) {
         if (classname != undefined) {
           const requestedClass = dbClassesMap[classname];
           const requestedRepo = datasource.getRepository(requestedClass);
-          let requestedObject = req.body as requestedClass;
+          let requestedObject = req.body as typeof requestedClass;
           if (
             requestedObject != undefined &&
             hasVisibilitySettings(requestedObject)
@@ -231,22 +231,25 @@ async function databaseRouting(app: Express, datasource: DataSource) {
       if (databaseUser != undefined) {
         const classname = req.params.typerequest as keyof typeof dbClassesMap;
         if (classname != undefined) {
-          const requestedClass = dbClassesMap[classname];
-          const requestedRepo = datasource.getRepository(requestedClass);
+          const RequestedClass = dbClassesMap[classname];
+          const RequestedRepo = datasource.getRepository(RequestedClass);
           if ("id" in req.body) {
-            let requestedObject = await requestedRepo.findOneBy({
+            let requestedObject = await RequestedRepo.findOneBy({
               id: req.body.id,
             });
             if (requestedObject != null) {
               if (
                 "allowedUsers" in requestedObject &&
+                typeof requestedObject.allowedUsers == "function" &&
                 !requestedObject.allowedUsers().some((x) => x == requestUser)
               ) {
                 res.status(403).send("not allowed");
                 return;
               }
-              const insertionObject = req.body as requestedClass;
-              requestedRepo.save(insertionObject);
+              const InsertionObject: InstanceType<typeof RequestedClass> =
+                req.body;
+              RequestedRepo.delete({ id: req.body.id });
+              RequestedRepo.insert(InsertionObject);
             } else {
               res
                 .status(404)
